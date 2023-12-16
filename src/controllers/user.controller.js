@@ -32,15 +32,17 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new ApiError(409, "User already exists");
   }
 
-  const avatarLocalPath = req.files?.avatar[0]?.path;
-  const coverImageLocalPath = req.files?.coverImage[0]?.path;
+  const avatarLocalPath = req.files?.avatar?.[0]?.path; //optional chaining used to access nested properties of object
+  const coverImageLocalPath = req.files?.coverImage?.[0]?.path; //optional chaining used to access nested properties of object
 
   if (!avatarLocalPath) {
     throw new ApiError(400, "Avatar file is required");
   }
+  //   console.log(req.files);
 
   const avatar = await uploadonCloudinary(avatarLocalPath);
   const coverImage = await uploadonCloudinary(coverImageLocalPath);
+  
   if (!avatar) {
     throw new ApiError(400, "Avatar file is required");
   }
@@ -55,7 +57,7 @@ const registerUser = asyncHandler(async (req, res) => {
   });
 
   const createdUser = await User.findById(user._id).select(
-    "-password -refreshToken"
+    "-password -refreshToken",
   );
 
   if (!createdUser) {
