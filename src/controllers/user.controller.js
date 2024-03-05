@@ -20,15 +20,15 @@ const generateAccessAndRefreshTokens = async (userId) => {
 };
 
 const registerUser = asyncHandler(async (req, res) => {
-  //   //get user details from frontend
-  //   //validation  - not empty
-  //   // check if user already exists: username,email
-  //   //check for images , check for avatar
-  //   // upload them to cloudinary , avatar
-  //   //create user object - create entry in db
-  //   //remove password and refresh token field from response
-  //   //check for user creation
-  //   //return res
+  //get user details from frontend
+  //validation  - not empty
+  // check if user already exists: username,email
+  //check for images , check for avatar
+  // upload them to cloudinary , avatar
+  //create user object - create entry in db
+  //remove password and refresh token field from response
+  //check for user creation
+  //return res
 
   const { fullname, username, password, email } = req.body;
   // if (fullname === "") {
@@ -50,12 +50,12 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 
   const avatarLocalPath = req.files?.avatar?.[0]?.path; //optional chaining used to access nested properties of object
+
   const coverImageLocalPath = req.files?.coverImage?.[0]?.path; //optional chaining used to access nested properties of object
 
   if (!avatarLocalPath) {
     throw new ApiError(400, "Avatar file is required");
   }
-  //   console.log(req.files);
 
   const avatar = await uploadonCloudinary(avatarLocalPath);
   const coverImage = await uploadonCloudinary(coverImageLocalPath);
@@ -144,8 +144,8 @@ const logoutUser = asyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(
     req.user._id,
     {
-      $set: {
-        refreshToken: undefined,
+      $unset: {
+        refreshToken: 1, //this removes the field from document,
       },
     },
     {
@@ -223,9 +223,13 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
 
 const getCurrentUsers = asyncHandler(async (req, res) => {
   const user = await User.find();
+  // if (!user) {
+  //   return res.status(200).json(new ApiResponse(200, user, "No user found"));
+  // }
+
   return res
     .status(200)
-    .json(new ApiResponse(200, user, "current user fetched successfully"));
+    .json(new ApiResponse(200, user, "current users fetched successfully"));
 });
 
 const updateAccountDetails = asyncHandler(async (req, res) => {
