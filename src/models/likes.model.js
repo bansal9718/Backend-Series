@@ -1,4 +1,4 @@
-import { Schema, mongo } from "mongoose";
+import { Schema, mongoose } from "mongoose";
 
 const likeSchema = new mongoose.Schema(
   {
