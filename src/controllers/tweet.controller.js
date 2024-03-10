@@ -7,26 +7,22 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 
 const createTweet = asyncHandler(async (req, res) => {
   //TODO: create tweet
-  const { content, ownerId } = req.body;
-  if (!content || !ownerId) {
+  const { content } = req.body;
+  if (!content) {
     throw new ApiError(401, "Pls provide details for tweet");
   }
   try {
-    const user = await User.findById(ownerId);
-
-    if (!user) {
-      throw new ApiError(400, "user does not exists");
-    }
-
-    const tweet = new Tweet({
+    const tweet = await Tweet.create({
       content: content,
-      owner: user?._id,
+      owner: req.user?._id,
     });
 
-    const savedTweet = await tweet.save();
+    if (!tweet) {
+      throw new ApiError(500, "Unable to create tweet!!");
+    }
 
     return res
-      .status(201)
+      .status(200)
       .json(new ApiResponse(200, savedTweet, "Tweet Created Successfully"));
   } catch (error) {
     throw new ApiError(401, error?.message, "Some Error Occured");
@@ -37,16 +33,29 @@ const getUserTweets = asyncHandler(async (req, res) => {
   // TODO: get user tweets
   try {
     const { userId } = req.params;
-
-    const user = await User.findById(userId);
-
-    if (!user) {
-      throw new ApiError(400, "User does not Exist");
+    if (!userId) {
+      throw new ApiError(400, "userId is Required!!!");
     }
 
-    const tweet = await Tweet.find({ owner: userId });
-    console.log(tweet);
-
+    const tweet = await Tweet.aggregate([
+      {
+        $match: {
+          owner: new mongoose.Types.ObjectId(userId),
+        },
+      },
+      {
+        $group: {
+          _id: "owner",
+          tweets: { $push: "$content" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          tweets: 1,
+        },
+      },
+    ]);
     if (!tweet) {
       throw new ApiError(400, "No Tweets Exists");
     }
@@ -67,6 +76,15 @@ const updateTweet = asyncHandler(async (req, res) => {
   try {
     if (!tweetId) {
       throw new ApiError(400, "Pls Provide Tweet ID");
+    }
+    const existingTweet = await Tweet.findById(tweetId);
+    if (!existingTweet) {
+      throw new ApiError(404, "Tweet doesn't exist");
+    }
+
+    //User is owner or not
+    if (existingTweet.owner.toString() !== req.user?._id.toString()) {
+      throw new ApiError(300, "Unuthorized Access");
     }
 
     const updateTweetDetails = await Tweet.findByIdAndUpdate(
@@ -104,8 +122,15 @@ const deleteTweet = asyncHandler(async (req, res) => {
       throw new ApiError(401, "Comment not found");
     }
 
+    if (tweet.owner.toString() !== req.user?._id.toString()) {
+      throw new ApiError(300, "Unuthorized Access");
+    }
+
     const deleteTweetDetails = await Tweet.findByIdAndDelete(tweetId);
 
+    if (!deleteTweetDetails) {
+      throw new ApiError(500, "Unable to delete tweet");
+    }
     res.status(200).json(new ApiResponse(200, "Tweet deleted Successfully"));
   } catch (error) {
     throw new ApiError(400, error?.message, "Some Error Occured");
